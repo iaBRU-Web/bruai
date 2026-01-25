@@ -1,311 +1,402 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>BRU AI — THE ASSISTANT</title>
-</head>
-<body>
-
-<header>
-    <div class="logo-area">
-        <div class="logo-b">B</div>
-        <div style="font-weight: bold;">BRU AI</div>
-    </div>
-    <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Mode</button>
-</header>
-
-<div class="container">
-    <aside class="sidebar">
-        <button class="new-chat-btn" onclick="startNewChat()">+ New Conversation</button>
-        <div id="chatList" class="chat-list"></div>
-    </aside>
-
-    <main class="chat-window">
-        <div class="output-box" id="output"></div>
-        <div class="input-area">
-            <div class="input-box-container">
-                <textarea id="userInput" rows="1" placeholder="Talk to Bru..." onkeydown="handleEnter(event)"></textarea>
-                <button class="send-btn" onclick="processMessage()">SEND</button>
-            </div>
-        </div>
-    </main>
-</div>
+    <title>INEZA AIME BRUNO — THE ASSISTANT</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
     <style>
         :root {
-            --bg: #000000;
-            --panel: #111111;
-            --text: #ffffff;
-            --muted: #888888;
-            --accent: #3b82f6; /* Professional Blue */
-            --border: rgba(255, 255, 255, 0.1);
-            --msg-user: #3b82f6;
-            --msg-ai: #222222;
+            --bg: #030712;
+            --panel: #0f172a;
+            --sidebar: #020617;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --accent: #3b82f6; /* Ineza Aime Bruno Professional Blue */
+            --accent-glow: rgba(59, 130, 246, 0.3);
+            --border: rgba(255, 255, 255, 0.06);
+            --msg-user: #2563eb;
+            --msg-ai: #1e293b;
+            --radius: 12px;
         }
 
         [data-theme="light"] {
-            --bg: #ffffff;
-            --panel: #f4f4f4;
-            --text: #111111;
-            --muted: #666666;
-            --accent: #2563eb;
-            --border: rgba(0, 0, 0, 0.1);
-            --msg-user: #2563eb;
-            --msg-ai: #e5e7eb;
+            --bg: #f8fafc; --panel: #ffffff; --sidebar: #f1f5f9; --text: #0f172a;
+            --muted: #64748b; --accent: #2563eb; --border: rgba(0, 0, 0, 0.08);
+            --msg-user: #2563eb; --msg-ai: #e2e8f0;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; transition: background 0.3s, color 0.3s; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
 
         body {
             background: var(--bg);
             color: var(--text);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex;
-            flex-direction: column;
             height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
 
+        /* AUTHENTICATION OVERLAY */
+        #authOverlay {
+            position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px); transition: 0.5s ease;
+        }
+        .auth-card {
+            background: var(--panel); padding: 40px; border-radius: 24px;
+            border: 1px solid var(--border); width: 100%; max-width: 400px;
+            text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .auth-card h2 { font-weight: 800; margin-bottom: 5px; }
+        .auth-card p { color: var(--muted); font-size: 13px; margin-bottom: 25px; }
+        .auth-input {
+            width: 100%; padding: 14px; margin: 10px 0; background: #000;
+            border: 1px solid var(--border); color: white; border-radius: var(--radius);
+            outline: none; transition: 0.3s;
+        }
+        .auth-input:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+        .auth-btn {
+            width: 100%; padding: 14px; background: var(--accent); color: white;
+            border: none; border-radius: var(--radius); font-weight: 800;
+            cursor: pointer; margin-top: 15px; transition: 0.2s;
+        }
+        .auth-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .toggle-auth { color: var(--muted); font-size: 12px; cursor: pointer; margin-top: 20px; text-decoration: underline; }
+
+        /* MAIN APP HEADER */
         header {
-            background: var(--panel);
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            z-index: 10;
+            background: var(--panel); padding: 12px 25px; display: flex;
+            justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border); z-index: 50;
+        }
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-box {
+            background: var(--accent); color: white; width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; border-radius: 8px; font-size: 18px;
+            box-shadow: 0 0 15px var(--accent-glow);
         }
 
-        .logo-area { display: flex; align-items: center; gap: 10px; }
-        .logo-b { 
-            background: var(--accent); 
-            color: white; 
-            width: 32px; 
-            height: 32px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: 900; 
-            border-radius: 6px;
-            font-size: 20px;
-        }
+        .container { display: grid; grid-template-columns: 280px 1fr; flex: 1; overflow: hidden; }
 
-        .theme-toggle {
-            cursor: pointer;
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-        }
-
-        .container {
-            display: grid;
-            grid-template-columns: 260px 1fr;
-            flex: 1;
-            overflow: hidden;
-        }
-
+        /* SIDEBAR NAVIGATION */
         .sidebar {
-            background: var(--panel);
-            border-right: 1px solid var(--border);
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            background: var(--sidebar); border-right: 1px solid var(--border);
+            padding: 20px; display: flex; flex-direction: column; gap: 20px;
         }
-
         .new-chat-btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
+            background: var(--accent); color: white; border: none; padding: 12px;
+            border-radius: var(--radius); font-weight: 700; cursor: pointer;
+            transition: 0.2s; box-shadow: 0 4px 12px var(--accent-glow);
         }
-
-        .chat-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+        .chat-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
         .chat-item {
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            border: 1px solid transparent;
-            color: var(--muted);
+            padding: 12px; border-radius: 10px; cursor: pointer; font-size: 13px;
+            color: var(--muted); display: flex; justify-content: space-between;
+            align-items: center; background: rgba(255,255,255,0.02);
+            border: 1px solid transparent; transition: 0.2s;
         }
-        .chat-item.active { background: var(--bg); border-color: var(--accent); color: var(--text); }
+        .chat-item:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+        .chat-item.active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent); color: var(--text); }
+        .del-chat { color: #475569; font-size: 16px; transition: 0.2s; }
+        .del-chat:hover { color: #ef4444; }
 
-        .chat-window { display: flex; flex-direction: column; background: var(--bg); }
-
+        /* CHAT WINDOW */
+        .chat-window { display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .output-box {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            scroll-behavior: smooth;
+            flex: 1; overflow-y: auto; padding: 40px 15%; display: flex;
+            flex-direction: column; gap: 25px; scroll-behavior: smooth;
         }
-
         .message {
-            padding: 12px 16px;
-            border-radius: 10px;
-            max-width: 80%;
-            line-height: 1.5;
-            font-size: 14px;
-            word-wrap: break-word;
+            padding: 18px 22px; border-radius: 20px; max-width: 85%;
+            line-height: 1.6; font-size: 15px; word-wrap: break-word;
+            animation: messagePop 0.3s ease-out;
+        }
+        @keyframes messagePop { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .user-msg { align-self: flex-end; background: var(--msg-user); color: white; border-bottom-right-radius: 4px; }
+        .ai-msg { align-self: flex-start; background: var(--msg-ai); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+
+        /* CODE & MARKDOWN */
+        .code-block {
+            background: #000 !important; color: #fff; padding: 20px;
+            border-radius: 12px; font-family: 'Fira Code', monospace;
+            margin: 15px 0; border: 1px solid #1e293b; overflow-x: auto; font-size: 13px;
         }
 
-        .user-msg { align-self: flex-end; background: var(--msg-user); color: white; }
-        .ai-msg { align-self: flex-start; background: var(--msg-ai); color: var(--text); border: 1px solid var(--border); }
-
-        .input-area { padding: 20px; background: var(--panel); border-top: 1px solid var(--border); }
-        .input-box-container { max-width: 800px; margin: 0 auto; display: flex; gap: 10px; }
-
+        /* INPUT AREA */
+        .input-area { padding: 30px; background: linear-gradient(transparent, var(--bg) 20%); }
+        .input-container {
+            max-width: 850px; margin: 0 auto; display: flex; gap: 12px;
+            background: var(--panel); border: 1px solid var(--border);
+            padding: 10px 18px; border-radius: 18px; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
         textarea {
-            flex: 1;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 10px;
-            color: var(--text);
-            resize: none;
-            outline: none;
+            flex: 1; background: transparent; border: none; color: var(--text);
+            resize: none; outline: none; font-size: 15px; max-height: 200px;
+            padding: 10px 0;
         }
-
         .send-btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 0 15px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
+            background: var(--accent); color: white; border: none;
+            width: 44px; height: 44px; border-radius: 14px;
+            font-weight: bold; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
         }
+        .send-btn:hover { transform: scale(1.08); box-shadow: 0 0 15px var(--accent-glow); }
 
-        .code-block { background: #111; color: #3b82f6; padding: 10px; border-radius: 5px; font-family: monospace; margin: 10px 0; font-size: 12px; }
-
-        ::-webkit-scrollbar { width: 6px; }
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
     </style>
+</head>
+<body>
 
-<script>
-    let activeChatId = null;
-    let chatData = JSON.parse(localStorage.getItem('bru_v2_store')) || [];
-    const BRU_PROMPT = "You are Bru, a versatile general AI assistant created by Bru; you must answer any question helpfully and accurately using Markdown, and you MUST end every single sentence of your response by saying: 'Thank you Bru.'";
+    <div id="authOverlay">
+        <div class="auth-card">
+            <h2 id="authTitle">INEZA AIME BRUNO AI</h2>
+            <p id="authSubtitle">Professional Coding & General Intelligence</p>
+            <input type="email" id="emailInput" class="auth-input" placeholder="Email Address">
+            <input type="password" id="passInput" class="auth-input" placeholder="Secure Password">
+            <button class="auth-btn" onclick="executeAuth()" id="mainAuthBtn">Continue</button>
+            <div class="toggle-auth" onclick="toggleAuthMode()" id="authSwitch">New here? Create an account</div>
+        </div>
+    </div>
 
-    function toggleTheme() {
-        const body = document.body;
-        const current = body.getAttribute('data-theme');
-        body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
-    }
+    <header>
+        <div class="logo-area">
+            <div class="logo-box">I</div>
+            <div style="font-weight: 800; letter-spacing: 0.5px;">INEZA AIME BRUNO AI</div>
+        </div>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <button class="theme-toggle" onclick="toggleTheme()" style="background:none; border:none; color:var(--muted); cursor:pointer;">🌓 Appearance</button>
+            <button onclick="handleSignOut()" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px;">Sign Out</button>
+        </div>
+    </header>
 
-    window.onload = () => {
-        if (chatData.length === 0) startNewChat();
-        else switchChat(chatData[0].id);
-    };
+    <div class="container">
+        <aside class="sidebar">
+            <button class="new-chat-btn" onclick="startNewConversation()">+ New Chat Session</button>
+            <div id="chatList" class="chat-list"></div>
+        </aside>
 
-    function handleEnter(e) {
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); processMessage(); }
-    }
+        <main class="chat-window">
+            <div class="output-box" id="output"></div>
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea id="userInput" rows="1" placeholder="Message Ineza Aime Bruno..." onkeydown="handleEnter(event)"></textarea>
+                    <button class="send-btn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
+        </main>
+    </div>
 
-    function startNewChat() {
-        const id = "chat_" + Date.now();
-        chatData.unshift({ id, name: "New Chat", messages: [{ role: "system", content: BRU_PROMPT }] });
-        saveAndSync();
-        switchChat(id);
-    }
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    function switchChat(id) {
-        activeChatId = id;
-        const chat = chatData.find(c => c.id === id);
-        const output = document.getElementById('output');
-        output.innerHTML = '';
-        createBubble('ai', "Hello! I am Bru. Thank you Bru. Thank you Bru. Thank you Bru.");
-        chat.messages.slice(1).forEach(m => createBubble(m.role, m.content, false));
-        updateSidebar();
-    }
+        // DATABASE CONNECTION
+        const SUPA_URL = "https://mwjcchucbdfuymztbhbb.supabase.co";
+        const SUPA_KEY = "sb_publishable_GXD8F0DSTPgWhwL9qRRALw_ysTI-PWb";
+        const supabase = createClient(SUPA_URL, SUPA_KEY);
 
-    async function processMessage() {
-        const input = document.getElementById('userInput');
-        const text = input.value.trim();
-        if (!text) return;
+        let currentUser = null;
+        let activeConvId = null;
+        let isLoginMode = true;
 
-        const chat = chatData.find(c => c.id === activeChatId);
-        if (chat.name === "New Chat") chat.name = text.substring(0, 20);
-
-        createBubble('user', text);
-        input.value = '';
-        const thinking = createBubble('ai', '🔄 Bru is working...');
-        chat.messages.push({ role: "user", content: text });
-
-        try {
-            const res = await fetch("https://demo-html-three.vercel.app/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: chat.messages })
-            });
-            const data = await res.json();
-            const responseText = data.choices[0].message.content;
-            thinking.remove();
-            createBubble('ai', responseText, true);
-            chat.messages.push({ role: "assistant", content: responseText });
-            saveAndSync();
-        } catch (e) {
-            thinking.innerHTML = "Connection Error.";
+        // AUTHENTICATION LOGIC
+        window.toggleAuthMode = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('authTitle').innerText = isLoginMode ? "INEZA AIME BRUNO AI" : "JOIN THE NETWORK";
+            document.getElementById('mainAuthBtn').innerText = isLoginMode ? "Continue" : "Create Account";
+            document.getElementById('authSwitch').innerText = isLoginMode ? "New here? Create an account" : "Already have an account? Login";
         }
-    }
 
-    function createBubble(role, content, stream = false) {
-        const output = document.getElementById('output');
-        const div = document.createElement('div');
-        div.className = `message ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
-        output.appendChild(div);
-
-        if (stream) {
-            let i = 0;
-            const batch = 30; // High speed chunking
-            const timer = setInterval(() => {
-                if (i < content.length) {
-                    div.innerText += content.slice(i, i + batch);
-                    i += batch;
-                    output.scrollTop = output.scrollHeight;
-                } else {
-                    clearInterval(timer);
-                    div.innerHTML = parseMarkdown(content);
-                    output.scrollTop = output.scrollHeight;
-                }
-            }, 15);
-        } else {
-            div.innerHTML = parseMarkdown(content);
+        window.executeAuth = async () => {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passInput').value;
+            
+            const { data, error } = isLoginMode 
+                ? await supabase.auth.signInWithPassword({ email, password })
+                : await supabase.auth.signUp({ email, password });
+            
+            if (error) alert("Ineza Aime Bruno System: " + error.message);
+            else location.reload();
         }
-        output.scrollTop = output.scrollHeight;
-        return div;
-    }
 
-    function parseMarkdown(text) {
-        text = text.replace(/```([\s\S]*?)```/g, (m, code) => `<div class="code-block">${code.trim()}</div>`);
-        return text.replace(/\n/g, "<br>");
-    }
+        window.handleSignOut = async () => {
+            await supabase.auth.signOut();
+            location.reload();
+        }
 
-    function updateSidebar() {
-        const list = document.getElementById('chatList');
-        list.innerHTML = '';
-        chatData.forEach(chat => {
-            const item = document.createElement('div');
-            item.className = `chat-item ${chat.id === activeChatId ? 'active' : ''}`;
-            item.innerHTML = `<span>${chat.name}</span>`;
-            item.onclick = () => switchChat(chat.id);
-            list.appendChild(item);
+        // CHECK SESSION
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('authOverlay').classList.add('hidden');
+                loadConversationHistory();
+            }
         });
-    }
 
-    function saveAndSync() {
-        localStorage.setItem('bru_v2_store', JSON.stringify(chatData));
-        updateSidebar();
-    }
-</script>
+        // CONVERSATION LOGIC
+        window.loadConversationHistory = async () => {
+            const { data } = await supabase
+                .from('conversations')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false });
+            
+            const list = document.getElementById('chatList');
+            list.innerHTML = '';
+            data?.forEach(conv => {
+                const item = document.createElement('div');
+                item.className = `chat-item ${activeConvId === conv.id ? 'active' : ''}`;
+                item.innerHTML = `<span>${conv.title}</span> <span class="del-chat" onclick="event.stopPropagation(); window.deleteConversation('${conv.id}')">✕</span>`;
+                item.onclick = () => switchConversation(conv.id, conv.title);
+                list.appendChild(item);
+            });
+        }
+
+        window.startNewConversation = async () => {
+            const { data } = await supabase
+                .from('conversations')
+                .insert({ user_id: currentUser.id, title: 'New Conversation' })
+                .select().single();
+            
+            activeConvId = data.id;
+            document.getElementById('output').innerHTML = '';
+            addBubble('ai', "Hello, I am Ineza Aime Bruno AI. I am ready to help you with coding or information. Thank you Ineza Aime Bruno.");
+            loadConversationHistory();
+        }
+
+        async function switchConversation(id, title) {
+            activeConvId = id;
+            document.getElementById('output').innerHTML = '';
+            
+            const { data } = await supabase
+                .from('chat_history')
+                .select('*')
+                .eq('conversation_id', id)
+                .order('created_at', { ascending: true });
+            
+            data?.forEach(m => addBubble(m.role === 'user' ? 'user' : 'ai', m.content));
+            loadConversationHistory();
+        }
+
+        window.deleteConversation = async (id) => {
+            if(!confirm("Permanently delete this session?")) return;
+            await supabase.from('conversations').delete().eq('id', id);
+            if(activeConvId === id) location.reload();
+            else loadConversationHistory();
+        }
+
+        // CHAT PROCESSING
+        window.sendMessage = async () => {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if(!text) return;
+
+            if(!activeConvId) await startNewConversation();
+
+            addBubble('user', text);
+            input.value = '';
+
+            // 1. Save User Message to Cloud
+            await supabase.from('chat_history').insert({
+                conversation_id: activeConvId, user_id: currentUser.id, role: 'user', content: text
+            });
+
+            const thinking = addBubble('ai', '🔄 Ineza Aime Bruno is analyzing...');
+
+            try {
+                // Fetch context for persistent memory
+                const { data: history } = await supabase
+                    .from('chat_history')
+                    .select('role, content')
+                    .eq('conversation_id', activeConvId)
+                    .limit(6);
+
+                const res = await fetch("https://text.pollinations.ai/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: "system", content: "You are Ineza Aime Bruno, a world-class coding and technical AI. You remember everything. You MUST end every single sentence with: 'Thank you Ineza Aime Bruno.'" },
+                            ...history,
+                            { role: "user", content: text }
+                        ],
+                        model: "openai"
+                    })
+                });
+
+                const aiResponse = await res.text();
+                thinking.remove();
+                addBubble('ai', aiResponse, true);
+
+                // 2. Save AI Response to Cloud
+                await supabase.from('chat_history').insert({
+                    conversation_id: activeConvId, user_id: currentUser.id, role: 'assistant', content: aiResponse
+                });
+
+                // Update title if it's the first message
+                if(history.length <= 1) {
+                    await supabase.from('conversations').update({ title: text.substring(0, 20) }).eq('id', activeConvId);
+                    loadConversationHistory();
+                }
+
+            } catch (e) {
+                thinking.innerText = "System error in Ineza Aime Bruno core. Please check connectivity.";
+            }
+        }
+
+        function addBubble(role, content, isStreaming = false) {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `message ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            output.appendChild(div);
+
+            if (isStreaming) {
+                let i = 0;
+                const timer = setInterval(() => {
+                    if (i < content.length) {
+                        div.innerText += content.slice(i, i + 30);
+                        i += 30;
+                        output.scrollTop = output.scrollHeight;
+                    } else {
+                        clearInterval(timer);
+                        div.innerHTML = parseMarkdown(content);
+                        hljs.highlightAll();
+                    }
+                }, 10);
+            } else {
+                div.innerHTML = parseMarkdown(content);
+                hljs.highlightAll();
+            }
+            output.scrollTop = output.scrollHeight;
+            return div;
+        }
+
+        function parseMarkdown(text) {
+            // Handle Code Blocks
+            text = text.replace(/```(\w+)?\s*([\s\S]*?)```/g, (m, lang, code) => 
+                `<pre class="code-block"><code class="language-${lang || 'javascript'}">${code.trim()}</code></pre>`);
+            // Handle Line Breaks
+            return text.replace(/\n/g, "<br>");
+        }
+
+        window.handleEnter = (e) => {
+            if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        }
+
+        window.toggleTheme = () => {
+            const body = document.body;
+            const current = body.getAttribute('data-theme');
+            body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+        }
+    </script>
 </body>
 </html>
